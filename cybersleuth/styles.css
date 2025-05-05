@@ -1,0 +1,166 @@
+@keyframes neonFlicker {
+    0% { box-shadow: 0 0 15px rgba(59, 130, 246, 0.5); }
+    50% { box-shadow: 0 0 10px rgba(96, 165, 250, 0.3); }
+    100% { box-shadow: 0 0 15px rgba(59, 130, 246, 0.5); }
+  }
+  @keyframes nodePulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+  }
+  @keyframes fadeInBounce {
+    0% { opacity: 0; transform: translateY(-10px); }
+    50% { opacity: 1; transform: translateY(5px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+  .animation-window {
+    background-color: rgba(17, 24, 39, 0.9);
+    border: 1px solid #3b82f6;
+    border-radius: 0.5rem;
+    height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 1rem;
+    position: relative;
+    overflow: hidden;
+  }
+  #dice-canvas {
+    width: 100%;
+    height: 100%;
+  }
+  .dice-result {
+    font-family: 'Courier New', monospace;
+    font-size: 1rem;
+    color: #ffffff;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+    text-align: left;
+    position: absolute;
+    top: 50%;
+    left: calc(100% - 150px);
+    transform: translate(0, -50%);
+    z-index: 10;
+    max-width: 200px;
+  }
+  .game-over-img {
+    max-width: 96px;
+    height: auto;
+    margin: 0 auto 1rem;
+    display: block;
+    box-shadow: 0 0 5px rgba(59, 130, 246, 0.5);
+  }
+  .intro-img {
+    max-width: 96px;
+    height: auto;
+    margin: 0 auto 1rem;
+    display: block;
+    box-shadow: 0 0 5px rgba(59, 130, 246, 0.5);
+    animation: fadeInBounce 1s ease-in-out;
+  }
+  .detective-img {
+    max-width: 128px;
+    height: auto;
+    margin: 0 auto;
+    display: block;
+    box-shadow: 0 0 5px rgba(59, 130, 246, 0.5);
+  }
+  .detective-specialty {
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    color: #60a5fa;
+    text-shadow: 0 0 5px rgba(59, 130, 246, 0.5);
+    text-align: center;
+    margin-top: 0.5rem;
+  }
+  .credit-text, .music-credit {
+    font-family: 'Courier New', monospace;
+    font-size: 1.25rem;
+    color: #60a5fa;
+    text-shadow: 0 0 5px rgba(59, 130, 246, 0.5);
+  }
+  .credit-text a, .music-credit a {
+    color: #3b82f6;
+    text-decoration: underline;
+    transition: color 0.3s;
+  }
+  .credit-text a:hover, .music-credit a:hover {
+    color: #93c5fd;
+  }
+  .grid-title, .notes-title {
+    font-family: 'Courier New', monospace;
+    color: #3b82f6;
+    text-shadow: 0 0 5px rgba(59, 130, 246, 0.5);
+    text-align: center;
+    margin-bottom: 0.5rem;
+  }
+  #grid-canvas {
+    width: 100%;
+    height: 300px;
+    background-color: rgba(17, 24, 39, 0.9);
+  }
+  .node-pulse {
+    animation: nodePulse 2s infinite;
+  }
+  .music-frame {
+    background-color: rgba(17, 24, 39, 0.9);
+    border: 1px solid #3b82f6;
+    border-radius: 0.5rem;
+    padding: 0.5rem;
+    margin-top: 1rem;
+    text-align: center;
+  }
+  #toggleMusic {
+    font-family: 'Courier New', monospace;
+  }
+  #digital-rain-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: -1;
+    background: transparent;
+  }
+  #notes-window {
+    width: 300px;
+    max-height: 500px;
+    overflow-y: auto;
+  }
+  #notes-content {
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    color: #60a5fa;
+    text-shadow: 0 0 5px rgba(59, 130, 246, 0.5);
+    padding: 0.5rem;
+  }
+  #game-container, #detective-window, #grid-window, #notes-window, .music-frame {
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.5); /* Default shadow for visibility */
+  }
+  #game-content p {
+    text-shadow: 0 0 5px rgba(59, 130, 246, 0.5); /* Added for readability of intro narrative */
+  }
+  @media (max-width: 1024px) {
+    .game-layout {
+      flex-direction: column;
+      align-items: center;
+    }
+    .left-column, #game-container, #notes-window {
+      width: 100%;
+      max-width: 600px;
+      margin-bottom: 1rem;
+    }
+    .music-frame {
+      width: 100%;
+      max-width: 600px;
+    }
+    .dice-result {
+      left: calc(100% - 100px);
+      max-width: 150px;
+      font-size: 0.9rem;
+    }
+  }
+  .confirm-button {
+    font-family: 'Courier New', monospace;
+    transition: all 0.3s ease;
+  }
+  .confirm-button:hover {
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+  }

@@ -1,0 +1,1389 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Neon Requiem Investigations</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @keyframes neonFlicker {
+      0% { box-shadow: 0 0 15px rgba(59, 130, 246, 0.5); }
+      50% { box-shadow: 0 0 10px rgba(96, 165, 250, 0.3); }
+      100% { box-shadow: 0 0 15px rgba(59, 130, 246, 0.5); }
+    }
+    @keyframes nodePulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+    .animation-window {
+      background-color: rgba(17, 24, 39, 0.9);
+      border: 1px solid #3b82f6;
+      border-radius: 0.5rem;
+      height: 100px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 1rem;
+      position: relative;
+      overflow: hidden;
+    }
+    #dice-canvas {
+      width: 100%;
+      height: 100%;
+    }
+    .dice-result {
+      font-family: 'Courier New', monospace;
+      font-size: 1rem;
+      color: #ffffff;
+      text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+      text-align: left;
+      position: absolute;
+      top: 50%;
+      left: calc(100% - 150px);
+      transform: translate(0, -50%);
+      z-index: 10;
+      max-width: 200px;
+    }
+    .game-over-img {
+      max-width: 96px;
+      height: auto;
+      margin: 0 auto 1rem;
+      display: block;
+      box-shadow: 0 0 5px rgba(59, 130, 246, 0.5);
+    }
+    .detective-img {
+      max-width: 128px;
+      height: auto;
+      margin: 0 auto;
+      display: block;
+      box-shadow: 0 0 5px rgba(59, 130, 246, 0.5);
+    }
+    .detective-specialty {
+      font-family: 'Courier New', monospace;
+      font-size: 0.9rem;
+      color: #60a5fa;
+      text-shadow: 0 0 5px rgba(59, 130, 246, 0.5);
+      text-align: center;
+      margin-top: 0.5rem;
+    }
+    .credit-text, .music-credit {
+      font-family: 'Courier New', monospace;
+      font-size: 1.25rem;
+      color: #60a5fa;
+      text-shadow: 0 0 5px rgba(59, 130, 246, 0.5);
+    }
+    .credit-text a, .music-credit a {
+      color: #3b82f6;
+      text-decoration: underline;
+      transition: color 0.3s;
+    }
+    .credit-text a:hover, .music-credit a:hover {
+      color: #93c5fd;
+    }
+    .grid-title, .notes-title {
+      font-family: 'Courier New', monospace;
+      color: #3b82f6;
+      text-shadow: 0 0 5px rgba(59, 130, 246, 0.5);
+      text-align: center;
+      margin-bottom: 0.5rem;
+    }
+    #grid-canvas {
+      width: 100%;
+      height: 300px;
+      background-color: rgba(17, 24, 39, 0.9);
+    }
+    .node-pulse {
+      animation: nodePulse 2s infinite;
+    }
+    .music-frame {
+      background-color: rgba(17, 24, 39, 0.9);
+      border: 1px solid #3b82f6;
+      border-radius: 0.5rem;
+      padding: 0.5rem;
+      margin-top: 1rem;
+      text-align: center;
+    }
+    #toggleMusic {
+      font-family: 'Courier New', monospace;
+    }
+    #digital-rain-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: -1;
+      background: transparent;
+    }
+    #notes-window {
+      width: 300px;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+    #notes-content {
+      font-family: 'Courier New', monospace;
+      font-size: 0.9rem;
+      color: #60a5fa;
+      text-shadow: 0 0 5px rgba(59, 130, 246, 0.5);
+      padding: 0.5rem;
+    }
+    #confirm-button {
+      font-family: 'Courier New', monospace;
+    }
+    @media (max-width: 1024px) {
+      .game-layout {
+        flex-direction: column;
+        align-items: center;
+      }
+      .left-column, #game-container, #notes-window {
+        width: 100%;
+        max-width: 600px;
+        margin-bottom: 1rem;
+      }
+      .music-frame {
+        width: 100%;
+        max-width: 600px;
+      }
+      .dice-result {
+        left: calc(100% - 100px);
+        max-width: 150px;
+        font-size: 0.9rem;
+      }
+    }
+  </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center relative">
+  <canvas id="digital-rain-canvas"></canvas>
+  <div class="absolute top-0 right-0 p-4 text-right credit-text">
+    Game inspired by <a href="https://x.com/chrissanders88" target="_blank" rel="noopener noreferrer">Chris Sanders</a> #InvestigationPath #DFIR #SOC
+  </div>
+  <div class="game-layout flex flex-row items-start justify-center space-x-4">
+    <div class="left-column flex flex-col space-y-4">
+      <div id="detective-window" class="w-64 p-4 bg-gray-950 border border-blue-500 rounded-lg flex flex-col items-center justify-center">
+        <img id="detective-img" src="detective-pixel-art.png" alt="16-bit pixel art of the detective protagonist" class="detective-img">
+        <p id="detective-specialty" class="detective-specialty"></p>
+      </div>
+      <div id="grid-window" class="w-64 p-4 bg-gray-950 border border-blue-500 rounded-lg">
+        <h2 class="grid-title text-xl font-semibold">The GRID</h2>
+        <canvas id="grid-canvas"></canvas>
+      </div>
+    </div>
+    <div id="game-container" class="max-w-2xl w-full p-6 bg-gray-950 border border-blue-500 rounded-lg">
+      <h1 id="game-title" class="text-3xl font-bold text-center mb-4 text-blue-400">Neon Requiem Investigations</h1>
+      <div id="status-bar" class="mb-4 text-center text-blue-300">
+        <p>Points: <span id="points">0</span> | Failures: <span id="failures">0</span>/3 | Rolls Left: <span id="roll-attempts">2</span></p>
+      </div>
+      <div id="game-content" class="text-center min-h-[300px]">
+        <p class="mb-4">In a city where neon burns brighter than truth, you're a detective unraveling digital mysteries. Choose your technical specialty to begin your investigation.</p>
+        <div id="trait-choices" class="space-y-2">
+          <button id="network-trait" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded">Network Specialty</button>
+          <button id="identity-trait" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded">Identity Specialty</button>
+          <button id="coding-trait" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded">Coding Specialty</button>
+        </div>
+        <div id="confirm-trait" class="mt-4 hidden">
+          <button id="confirm-button" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded">Confirm</button>
+        </div>
+      </div>
+      <div id="animation-window" class="animation-window">
+        <canvas id="dice-canvas"></canvas>
+        <div id="dice-result" class="dice-result hidden"></div>
+      </div>
+    </div>
+    <div id="notes-window" class="p-4 bg-gray-950 border border-blue-500 rounded-lg">
+      <h2 class="notes-title text-xl font-semibold">My Notes</h2>
+      <div id="notes-content"></div>
+    </div>
+  </div>
+  <div class="music-frame w-full max-w-3xl">
+    <p class="music-credit mb-2">Music from <a href="https://x.com/lukhash" target="_blank" rel="noopener noreferrer">LukHash</a></p>
+    <button id="toggleMusic" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded">Music On/Off</button>
+  </div>
+  <div id="player" style="display: none;"></div>
+  <script src="https://www.youtube.com/iframe_api"></script>
+  <script src="script.js"></script>
+  <script>
+    // Remove duplicate containers
+    document.querySelectorAll('#game-container').forEach((el, index) => {
+      if (index > 0) el.remove();
+    });
+    document.querySelectorAll('#detective-window').forEach((el, index) => {
+      if (index > 0) el.remove();
+    });
+    document.querySelectorAll('#grid-window').forEach((el, index) => {
+      if (index > 0) el.remove();
+    });
+    document.querySelectorAll('#notes-window').forEach((el, index) => {
+      if (index > 0) el.remove();
+    });
+
+    // Apply random neon flicker to all windows
+    const gameContainer = document.getElementById('game-container');
+    const detectiveWindow = document.getElementById('detective-window');
+    const gridWindow = document.getElementById('grid-window');
+    const notesWindow = document.getElementById('notes-window');
+    const musicFrame = document.querySelector('.music-frame');
+    const detectiveImg = document.getElementById('detective-img');
+    const detectiveSpecialty = document.getElementById('detective-specialty');
+    const notesContent = document.getElementById('notes-content');
+    function applyNeonFlicker(element) {
+      const duration = (Math.random() * 0.5 + 0.5).toFixed(2);
+      const delay = (Math.random() * 5 + 5).toFixed(2);
+      element.style.animation = `neonFlicker ${duration}s infinite ${delay}s`;
+    }
+    applyNeonFlicker(gameContainer);
+    applyNeonFlicker(detectiveWindow);
+    applyNeonFlicker(gridWindow);
+    applyNeonFlicker(notesWindow);
+    applyNeonFlicker(musicFrame);
+
+    // Digital Rain Effect
+    const rainCanvas = document.getElementById('digital-rain-canvas');
+    const rainCtx = rainCanvas.getContext('2d');
+    function resizeRainCanvas() {
+      rainCanvas.width = window.innerWidth;
+      rainCanvas.height = window.innerHeight;
+    }
+    resizeRainCanvas();
+    window.addEventListener('resize', resizeRainCanvas);
+
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*';
+    const fontSize = 14;
+    const colors = ['#ef4444', '#facc15', '#22c55e', '#a855f7'];
+    const columns = Math.floor(rainCanvas.width / fontSize);
+    const drops = Array(columns).fill(0);
+
+    function drawDigitalRain() {
+      rainCtx.fillStyle = 'rgba(17, 24, 39, 0.1)';
+      rainCtx.fillRect(0, 0, rainCanvas.width, rainCanvas.height);
+      rainCtx.font = `${fontSize}px monospace`;
+
+      for (let i = 0; i < drops.length; i++) {
+        const char = chars[Math.floor(Math.random() * chars.length)];
+        const x = i * fontSize;
+        const y = drops[i] * fontSize;
+        rainCtx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
+        rainCtx.fillText(char, x, y);
+
+        if (y > rainCanvas.height && Math.random() > 0.975) {
+          drops[i] = 0;
+        }
+        drops[i] += 0.3333;
+      }
+    }
+
+    function animateDigitalRain() {
+      drawDigitalRain();
+      requestAnimationFrame(animateDigitalRain);
+    }
+    animateDigitalRain();
+
+    // Dice Animation with Physics
+    const diceCanvas = document.getElementById('dice-canvas');
+    const diceCtx = diceCanvas.getContext('2d');
+    const diceResult = document.getElementById('dice-result');
+
+    function resizeDiceCanvas() {
+      diceCanvas.width = diceCanvas.offsetWidth;
+      diceCanvas.height = diceCanvas.offsetHeight;
+    }
+    resizeDiceCanvas();
+    window.addEventListener('resize', resizeDiceCanvas);
+
+    function clearDiceCanvas() {
+      diceCtx.fillStyle = 'rgba(17, 24, 39, 0.9)';
+      diceCtx.fillRect(0, 0, diceCanvas.width, diceCanvas.height);
+    }
+
+    const dice = [
+      { x: 50, y: 50, vx: 5, vy: 3, angle: 0, angularV: 0.1, size: 30, face: 1 },
+      { x: 100, y: 50, vx: -4, vy: 4, angle: 0, angularV: -0.15, size: 30, face: 1 }
+    ];
+    let tray = { left: 10, right: diceCanvas.width - 10, top: 10, bottom: diceCanvas.height - 10 };
+    let animationStart = 0;
+    let animationFrameId = null;
+
+    function drawDie(die, isStopped) {
+      diceCtx.save();
+      diceCtx.translate(die.x, die.y);
+      diceCtx.rotate(die.angle);
+      diceCtx.fillStyle = '#ffffff';
+      diceCtx.strokeStyle = '#3b82f6';
+      diceCtx.lineWidth = 2;
+      diceCtx.beginPath();
+      diceCtx.rect(-die.size / 2, -die.size / 2, die.size, die.size);
+      diceCtx.fill();
+      diceCtx.stroke();
+      diceCtx.strokeStyle = '#60a5fa';
+      diceCtx.beginPath();
+      diceCtx.moveTo(die.size / 2, -die.size / 2);
+      diceCtx.lineTo(die.size / 2 + 5, -die.size / 2 - 5);
+      diceCtx.lineTo(die.size / 2 + 5, die.size / 2 - 5);
+      diceCtx.lineTo(die.size / 2, die.size / 2);
+      diceCtx.stroke();
+      if (isStopped) {
+        diceCtx.fillStyle = '#ef4444';
+        diceCtx.font = 'bold 16px Courier New';
+        diceCtx.textAlign = 'center';
+        diceCtx.textBaseline = 'middle';
+        diceCtx.fillText(die.face, 0, 0);
+      }
+      diceCtx.restore();
+    }
+
+    function updateDicePhysics(timestamp) {
+      const elapsed = (timestamp - animationStart) / 1000;
+      diceCtx.fillStyle = 'rgba(17, 24, 39, 0.9)';
+      diceCtx.fillRect(0, 0, diceCanvas.width, diceCanvas.height);
+
+      const isRolling = elapsed < 2;
+      dice.forEach(die => {
+        if (isRolling) {
+          die.x += die.vx;
+          die.y += die.vy;
+          die.angle += die.angularV;
+          if (die.x - die.size / 2 < tray.left || die.x + die.size / 2 > tray.right) {
+            die.vx = -die.vx * 0.8;
+            die.x = Math.max(tray.left + die.size / 2, Math.min(tray.right - die.size / 2, die.x));
+          }
+          if (die.y - die.size / 2 < tray.top || die.y + die.size / 2 > tray.bottom) {
+            die.vy = -die.vy * 0.8;
+            die.y = Math.max(tray.top + die.size / 2, Math.min(tray.bottom - die.size / 2, die.y));
+          }
+          die.vx *= 0.98;
+          die.vy *= 0.98;
+          die.angularV *= 0.98;
+        } else {
+          die.vx = 0;
+          die.vy = 0;
+          die.angularV = 0;
+        }
+        drawDie(die, !isRolling);
+      });
+
+      return isRolling;
+    }
+
+    function showDiceAnimation(socRoll, supportRoll, choice, scenario, callback) {
+      try {
+        if (animationFrameId) {
+          cancelAnimationFrame(animationFrameId);
+        }
+        diceResult.classList.add('hidden');
+        clearDiceCanvas();
+
+        dice[0].face = socRoll;
+        dice[0].x = 50;
+        dice[0].y = 50;
+        dice[0].vx = 5;
+        dice[0].vy = 3;
+        dice[0].angle = 0;
+        dice[0].angularV = 0.1;
+        dice[1].face = supportRoll;
+        dice[1].x = 100;
+        dice[1].y = 50;
+        dice[1].vx = -4;
+        dice[1].vy = 4;
+        dice[1].angle = 0;
+        dice[1].angularV = -0.15;
+        tray = { left: 10, right: diceCanvas.width - 10, top: 10, bottom: diceCanvas.height - 10 };
+
+        const socOutcome = getDiceOutcome(gameState.socDice, socRoll);
+        const supportOutcome = gameState.supportDice ? getDiceOutcome(gameState.supportDice, supportRoll) : "No Support Dice";
+        const isSuccess = gameState.successfulDice.includes(choice.successCriteria);
+
+        animationStart = performance.now();
+        function animate(timestamp) {
+          try {
+            const isRolling = updateDicePhysics(timestamp);
+            if (!isRolling) {
+              const resultText = isSuccess
+                ? `Success! SOC: ${socOutcome}<br>Support: ${supportOutcome}`
+                : `No Match! SOC: ${socOutcome}<br>Support: ${supportOutcome}`;
+              diceResult.innerHTML = resultText;
+              diceResult.classList.remove('hidden');
+              setTimeout(() => {
+                diceResult.classList.add('hidden');
+                clearDiceCanvas();
+                animationFrameId = null;
+                updateNotes(choice, scenario, isSuccess, socOutcome, supportOutcome);
+                callback();
+              }, 1500);
+              return;
+            }
+            animationFrameId = requestAnimationFrame(animate);
+          } catch (error) {
+            console.error('Animation error:', error);
+            diceResult.classList.add('hidden');
+            clearDiceCanvas();
+            animationFrameId = null;
+            updateNotes(choice, scenario, false, "", "");
+            callback();
+          }
+        }
+        animationFrameId = requestAnimationFrame(animate);
+      } catch (error) {
+        console.error('showDiceAnimation error:', error);
+        diceResult.classList.add('hidden');
+        clearDiceCanvas();
+        gameState.isRolling = false;
+        updateNotes(choice, scenario, false, "", "");
+        callback();
+      }
+    }
+
+    // My Notes Content
+    const notesData = {
+      "Network Specialty": {
+        definitions: "Network Specialty: Focuses on understanding and securing network infrastructure, including protocols, traffic analysis, and connectivity.<br><br>Tools: Common tools include Wireshark (for packet analysis), tcpdump (for capturing network traffic), and netstat/ss (for viewing network connections).",
+        reasoning: "Choosing a Network Specialty equips you with skills to monitor and analyze network traffic, which is critical for detecting unauthorized connections, data exfiltration, or communication with malicious servers.",
+        value: "This specialty enhances your ability to identify network-based threats, such as command-and-control (C2) communications, and implement measures like firewall rules to block malicious IPs, protecting the organization’s network."
+      },
+      "Identity Specialty": {
+        definitions: "Identity Specialty: Focuses on managing and securing user identities, access controls, and authentication mechanisms.<br><br>Tools: Common tools include Active Directory (for managing user accounts and permissions) and Security Event Logs (for auditing logon events).",
+        reasoning: "Choosing an Identity Specialty allows you to investigate user accounts and access patterns, which is essential for detecting compromised accounts or unauthorized access within a system.",
+        value: "This specialty helps you secure user identities by identifying and mitigating risks like privilege escalation or misuse of dormant accounts, ensuring only authorized users access sensitive systems."
+      },
+      "Coding Specialty": {
+        definitions: "Coding Specialty: Focuses on understanding and analyzing code, scripts, and applications to identify vulnerabilities or malicious behavior.<br><br>Tools: Common tools include code editors (for reviewing scripts), grep (for searching code), and debugging tools (for analyzing program behavior).",
+        reasoning: "Choosing a Coding Specialty enables you to dissect malicious scripts, identify vulnerabilities in applications, and understand how attackers exploit code, such as through injection attacks.",
+        value: "This specialty allows you to find and remove malicious code, patch vulnerabilities, and harden applications, reducing the attack surface and preventing future exploits."
+      },
+      "1a": {
+        definitions: "Command History (~/.bash_history): On Linux systems, the command history is stored in a file called ~/.bash_history in the user's home directory. It logs commands executed in the terminal, which can reveal suspicious activity.<br><br>cron: A time-based job scheduler in Unix-like systems. It runs scripts or commands at specified intervals, often used for automation but can be exploited to execute malicious code.",
+        reasoning: "Checking the user's command history is a key step in incident response. It helps identify what commands were run, especially if an attacker used the terminal to download or execute malicious scripts. This can reveal the initial infection vector or persistence mechanisms.",
+        value: "By examining the command history, a security professional can quickly trace unauthorized actions, such as downloading a script via 'curl' (a command-line tool to transfer data). This provides a starting point for deeper investigation and helps prevent further damage."
+      },
+      "1a1": {
+        definitions: "Preserving History: Making a copy of ~/.bash_history to prevent tampering by an attacker.<br><br>Script Commands: Analyzing the commands in the script to understand their purpose, such as downloading additional malware or establishing persistence.",
+        reasoning: "Preserving the command history ensures evidence isn't lost if an attacker modifies or deletes the file. Analyzing script commands helps understand the attacker's intent and methods, such as whether they installed malware or exfiltrated data.",
+        value: "This action secures critical evidence for forensic analysis and helps identify the full scope of the compromise. It can lead to discovering additional malicious scripts or payloads, allowing the security team to clean the system effectively."
+      },
+      "1a2": {
+        definitions: "Modified Files: Files that have been recently changed or created, often found using commands like 'find' or 'ls -lt' to check timestamps.",
+        reasoning: "Searching for modified files helps identify where an attacker may have placed malicious binaries or scripts, such as in /tmp, a common directory for temporary files that attackers exploit.",
+        value: "Finding and removing malicious files prevents further execution of harmful code. It also helps map the attacker's actions on the system, aiding in containment and recovery."
+      },
+      "1b": {
+        definitions: "Syslog (/var/log/syslog): A log file on Linux systems that records system events, including cron job executions.<br><br>Cron Log (/var/log/cron): A specific log for cron activities, showing when and what jobs were executed.",
+        reasoning: "Inspecting logs like syslog or cron logs helps track scheduled tasks that might be malicious. Cron jobs pulling scripts from external URLs are a common persistence mechanism for attackers.",
+        value: "This action reveals unauthorized cron jobs, allowing a security professional to disable them and stop ongoing malicious activity. It also provides timestamps for correlating with other events, building a timeline of the attack."
+      },
+      "1b1": {
+        definitions: "Timestamps: The date and time a log entry was recorded, used to match events across different logs.<br><br>Network Logs: Logs from tools like firewalls or intrusion detection systems (IDS) that record network traffic.",
+        reasoning: "Correlating timestamps between cron logs and network logs helps identify if data was exfiltrated or if the cron job communicated with a malicious server, indicating a breach.",
+        value: "This correlation pinpoints the exact time of malicious activity, enabling the security team to block the malicious IP and prevent further data loss. It strengthens the incident response by linking system and network events."
+      },
+      "1b2": {
+        definitions: "Log Tampering: When an attacker modifies or deletes log entries to hide their activities, often detected by gaps or inconsistencies in logs.",
+        reasoning: "Checking for log tampering ensures the integrity of evidence. Attackers often alter logs to cover their tracks, so restoring from backups can reveal the true extent of their actions.",
+        value: "Identifying tampering confirms an active intrusion, prompting a deeper investigation. Restoring logs from backups provides a clearer picture of the attack, aiding in attribution and mitigation."
+      },
+      "1c": {
+        definitions: "netstat: A command-line tool to display network connections, routing tables, and interface statistics.<br><br>ss: A modern replacement for netstat, used to show socket statistics and active connections.",
+        reasoning: "Analyzing network connections with netstat or ss helps identify unauthorized outbound connections, such as those to a command-and-control (C2) server, which attackers use to control compromised systems.",
+        value: "Detecting suspicious connections allows a security professional to isolate the system and block the malicious IP, stopping further communication with the attacker. This is critical for containing the breach."
+      },
+      "1c1": {
+        definitions: "IP Address Tracing: Using tools like WHOIS or geolocation services to identify the owner and location of an IP address.<br><br>C2 Server: A command-and-control server used by attackers to send commands to compromised systems.",
+        reasoning: "Tracing the IP address of an outbound connection can confirm if it’s a known malicious server, such as a C2 server, indicating a serious compromise.",
+        value: "Confirming the IP as a C2 server allows the security team to cut off the connection, preventing further attacker control. It also provides intelligence for threat hunting and reporting to authorities."
+      },
+      "1c2": {
+        definitions: "Ongoing Traffic Monitoring: Using tools like tcpdump or Wireshark to capture and analyze network traffic in real-time.",
+        reasoning: "Monitoring traffic helps capture malicious packets, revealing the attacker's methods and allowing the creation of signatures to detect similar attacks in the future.",
+        value: "Capturing packets provides actionable data for developing intrusion detection rules, enhancing future defenses. It also helps understand the attacker's tactics, improving incident response."
+      },
+      "2a": {
+        definitions: "Security Event Logs: Logs in Windows systems (accessed via Event Viewer) that record events like logons, accessed under Event ID 4624 for successful logins.",
+        reasoning: "Reviewing logon events helps identify unauthorized access, especially if an old account like 'testuser' is being used, which might indicate a compromised account.",
+        value: "This action detects misuse of dormant accounts, a common tactic for persistence. Identifying unauthorized logons enables the security team to disable the account and investigate further."
+      },
+      "2a1": {
+        definitions: "Source IP: The IP address from which a logon attempt originated, often recorded in Security Event Logs.",
+        reasoning: "Tracing the source IP of a logon event can reveal if the access came from an external, potentially malicious location, confirming a breach.",
+        value: "Identifying an external IP as the source of a logon allows the security team to block it and disable the compromised account, stopping further unauthorized access and containing the incident."
+      },
+      "2a2": {
+        definitions: "Logon Times: The timestamps of logon events, recorded in Security Event Logs.",
+        reasoning: "Checking logon times can reveal suspicious activity, such as logons at odd hours (e.g., 3 AM), which are unlikely for legitimate users and may indicate an attack.",
+        value: "Flagging unusual logon times helps confirm unauthorized access, prompting further investigation through incident response. It aids in building a timeline of the attack for better response."
+      },
+      "2b": {
+        definitions: "Active Directory (AD): A Microsoft service for managing users, groups, and permissions in a Windows domain.<br><br>Group Memberships: The security groups a user belongs to, such as Domain Admins, which grant elevated privileges.",
+        reasoning: "Checking group memberships in Active Directory helps identify if an account has been given unauthorized privileges, such as being added to Domain Admins, a common escalation tactic.",
+        value: "Detecting unauthorized group memberships allows the security team to remove the account from privileged groups, reducing the risk of further damage. It also highlights a potential privilege escalation attack."
+      },
+      "2b1": {
+        definitions: "Privileged Groups: Groups like Domain Admins in Active Directory that grant high-level access to systems and data.",
+        reasoning: "Removing an account from privileged groups prevents an attacker from using it to access sensitive systems or data, limiting their ability to cause harm.",
+        value: "This action reduces the attacker's capabilities, protecting critical resources. It also forces the attacker to find another method of escalation, buying time for further investigation and response."
+      },
+      "2b2": {
+        definitions: "Group Changes: Modifications to group memberships in Active Directory, often logged in Security Event Logs.",
+        reasoning: "Auditing group changes helps identify if an attacker has modified other accounts or groups, indicating a broader compromise beyond the initial account.",
+        value: "Discovering additional unauthorized changes triggers a wider investigation, ensuring all compromised accounts are addressed. It helps contain the breach and prevent further escalation."
+      },
+      "2c": {
+        definitions: "Audit Policies: Windows settings that enable logging of specific actions, such as file access, configured via Group Policy.<br><br>File Access: Actions like reading or modifying files, logged in Security Event Logs.",
+        reasoning: "Examining file access logs helps identify if an account has accessed sensitive data, such as HR files, which could indicate data theft or reconnaissance by an attacker.",
+        value: "Detecting unauthorized file access allows the security team to secure the affected files and assess the extent of data exposure. It helps prevent further data breaches and informs incident response."
+      },
+      "2c1": {
+        definitions: "Locking Down Files: Restricting access to files by modifying permissions or moving them to a secure location.",
+        reasoning: "Locking down affected files prevents further unauthorized access, stopping the attacker from continuing to steal or modify sensitive data.",
+        value: "This action protects critical data, such as HR files, from further compromise. It helps contain the incident and gives the security team time to investigate and mitigate the breach."
+      },
+      "2c2": {
+        definitions: "Unauthorized Access: Access to files or systems by an account that shouldn’t have permission, often detected through audit logs.",
+        reasoning: "Checking for additional unauthorized access helps identify the full scope of the compromise, ensuring no other sensitive data was accessed by the attacker.",
+        value: "A full audit ensures all affected areas are identified and secured, preventing further data loss. It also provides a comprehensive view of the attack, aiding in recovery and future prevention."
+      },
+      "3a": {
+        definitions: "wp-content: A directory in WordPress where themes, plugins, and uploads are stored, often targeted by attackers to inject malicious scripts.<br><br>Suspicious Files: Files that don’t belong, such as PHP scripts in uploads, often detected by unusual names or timestamps.",
+        reasoning: "Checking wp-content for suspicious files helps identify if an attacker has injected malicious code, a common method to maintain persistence or execute attacks on a WordPress server.",
+        value: "Finding malicious scripts allows the security team to remove them, stopping ongoing attacks. It also highlights vulnerabilities in the WordPress setup, prompting updates or patches to prevent future exploits."
+      },
+      "3a1": {
+        definitions: "Quarantine: Isolating a file by moving it to a secure location or restricting its execution to prevent harm.",
+        reasoning: "Quarantining a malicious script prevents it from executing further, stopping the attack while preserving the file for forensic analysis.",
+        value: "This action halts the immediate threat, protecting the server and its users. It also allows for detailed analysis of the script, which can reveal the attacker’s methods and help prevent similar attacks."
+      },
+      "3a2": {
+        definitions: "File Timestamps: The creation or modification time of a file, checked using commands like 'ls -l' or 'stat' on Linux.",
+        reasoning: "Checking file timestamps helps identify recently modified or created files, which can indicate an intrusion if they align with the time of a suspected attack.",
+        value: "Identifying recent changes confirms an active intrusion, allowing the security team to patch vulnerabilities (e.g., outdated WordPress versions) and remove malicious files, securing the server."
+      },
+      "3b": {
+        definitions: "HTTP Access Logs: Logs generated by web servers (e.g., Apache, Nginx) that record HTTP requests, often found in /var/log/apache2/access.log.<br><br>POST Requests: HTTP requests used to send data to a server, often exploited to upload malicious files or execute code.",
+        reasoning: "Reviewing HTTP access logs helps identify suspicious requests, such as repeated POST requests to a vulnerable plugin, which could indicate an exploit attempt.",
+        value: "Detecting malicious requests allows the security team to disable the vulnerable plugin, stopping the attack. It also provides evidence of the attack method, aiding in mitigation and future prevention."
+      },
+      "3b1": {
+        definitions: "Plugin: A WordPress component that adds functionality, often targeted by attackers if not updated.",
+        reasoning: "Disabling a vulnerable plugin prevents further exploitation, as attackers often target outdated plugins to gain access to a server.",
+        value: "This action stops the immediate threat, protecting the server from further compromise. It also highlights the need to update or replace the plugin, improving overall security."
+      },
+      "3b2": {
+        definitions: "Request Payloads: The data sent in an HTTP request, often analyzed to detect malicious content like SQL injection attempts.<br><br>SQL Injection: An attack where malicious SQL code is inserted into a query, often via form inputs, to manipulate a database.",
+        reasoning: "Analyzing request payloads helps identify attack patterns, such as SQL injection attempts, which can reveal vulnerabilities in the web application.",
+        value: "Detecting SQL injection attempts allows the security team to harden the database (e.g., using prepared statements), preventing data theft or manipulation. It also informs future security measures."
+      },
+      "3c": {
+        definitions: "Network Traffic: Data sent and received over a network, monitored using tools like tcpdump or Wireshark.<br><br>C2 Server: A command-and-control server used by attackers to manage compromised systems.",
+        reasoning: "Monitoring network traffic from the server helps identify if it’s communicating with a C2 server, indicating a compromise and active attacker control.",
+        value: "Detecting C2 communication allows the security team to isolate the server, stopping the attacker’s control. It also provides evidence for further investigation and threat intelligence."
+      },
+      "3c1": {
+        definitions: "Isolate: Disconnecting a system from the network to prevent further communication with an attacker.",
+        reasoning: "Isolating the server cuts off communication with the C2 server, preventing the attacker from sending further commands or exfiltrating data.",
+        value: "This action contains the breach, protecting the network and data. It buys time for the security team to investigate and remediate the compromise without further interference."
+      },
+      "3c2": {
+        definitions: "Traffic Capture: Recording network traffic using tools like tcpdump or Wireshark for analysis.<br><br>IDS Rules: Rules for an Intrusion Detection System to detect and alert on malicious activity.",
+        reasoning: "Capturing traffic allows the security team to analyze the attacker’s communication patterns, enabling the creation of IDS rules to detect similar attacks in the future.",
+        value: "This action enhances future defenses by adding detection capabilities. It also provides insights into the attacker’s tactics, improving overall security posture and incident response."
+      }
+    };
+
+    function updateNotes(choiceOrTrait, scenario = null, isOutcome = false, socOutcome = "", supportOutcome = "") {
+      const key = typeof choiceOrTrait === 'string' ? choiceOrTrait : choiceOrTrait.id;
+      const text = typeof choiceOrTrait === 'string' ? choiceOrTrait : choiceOrTrait.text;
+      const note = notesData[key] || { definitions: "No notes available.", reasoning: "", value: "" };
+      let content = `<strong>Action:</strong> ${text}<br><br>`;
+      
+      if (!isOutcome) {
+        content += `<strong>Definitions:</strong><br>${note.definitions}<br><br>`;
+        content += `<strong>Why Do This?</strong><br>${note.reasoning}<br><br>`;
+        content += `<strong>Value:</strong><br>${note.value}`;
+      } else {
+        content += `<strong>Outcome:</strong><br>${choiceOrTrait.outcome}<br><br>`;
+        content += `<strong>Roll Result:</strong><br>`;
+        content += isOutcome ? `SOC: ${socOutcome}, Support: ${supportOutcome}` : "No roll yet.";
+      }
+      
+      notesContent.innerHTML = content;
+      notesWindow.scrollTop = 0; // Scroll to top for new content
+    }
+
+    // Path visualization on canvas
+    const canvas = document.getElementById('grid-canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = canvas.offsetWidth;
+    canvas.height = 300;
+
+    function drawGridBackground() {
+      ctx.fillStyle = 'rgba(17, 24, 39, 0.9)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = '#1e3a8a';
+      ctx.lineWidth = 1;
+      ctx.globalAlpha = 0.5;
+      for (let x = 0; x < canvas.width; x += 20) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+      }
+      for (let y = 0; y < canvas.height; y += 20) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = '#3b82f6';
+      ctx.lineWidth = 2;
+      ctx.globalAlpha = 0.2;
+      for (let x = 0; x < canvas.width; x += 40) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+      }
+      for (let y = 0; y < canvas.height; y += 40) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    function drawPath(scenario, successfulChoices, currentChoiceId, focusNodeId) {
+      drawGridBackground();
+      if (!scenario) return;
+
+      const nodeWidth = 20;
+      const levelHeight = 80;
+      const startX = canvas.width / 2;
+      const startY = 60;
+      let nodes = [];
+
+      if (!focusNodeId) {
+        scenario.choices.forEach((choice, index) => {
+          const level = 1;
+          const x = startX + (index - (scenario.choices.length - 1) / 2) * 100;
+          const y = startY + level * levelHeight;
+          nodes.push({ id: choice.id, x, y, text: choice.text, next: choice.next || [], level });
+        });
+      } else {
+        const focusChoice = scenario.choices.find(choice => choice.id === focusNodeId) ||
+                           scenario.choices.flatMap(choice => choice.next || []).find(choice => choice.id === focusNodeId);
+        if (focusChoice) {
+          const x = startX;
+          const y = startY;
+          nodes.push({ id: focusChoice.id, x, y, text: focusChoice.text, next: focusChoice.next || [], level: 1 });
+          if (focusChoice.next) {
+            focusChoice.next.forEach((nextChoice, nextIndex) => {
+              const nextX = startX + (nextIndex - (focusChoice.next.length - 1) / 2) * 80;
+              const nextY = y + levelHeight;
+              nodes.push({ id: nextChoice.id, x: nextX, y: nextY, text: nextChoice.text, next: [], level: 2 });
+            });
+          }
+        }
+      }
+
+      ctx.strokeStyle = '#3b82f6';
+      ctx.lineWidth = 3;
+      nodes.forEach(node => {
+        if (node.next) {
+          node.next.forEach(nextChoice => {
+            const nextNode = nodes.find(n => n.id === nextChoice.id);
+            if (nextNode) {
+              ctx.beginPath();
+              ctx.moveTo(node.x, node.y + 10);
+              ctx.lineTo(nextNode.x, nextNode.y - 10);
+              ctx.stroke();
+            }
+          });
+        }
+      });
+
+      nodes.forEach(node => {
+        ctx.fillStyle = successfulChoices.includes(node.id) ? '#22c55e' : currentChoiceId === node.id ? '#93c5fd' : '#3b82f6';
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, 10, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.strokeStyle = '#60a5fa';
+        ctx.stroke();
+
+        ctx.fillStyle = '#60a5fa';
+        ctx.font = '10px Courier New';
+        ctx.textAlign = 'center';
+        const words = node.text.split(' ');
+        let line = '';
+        let lines = [];
+        for (let word of words) {
+          if (ctx.measureText(line + word).width < 80) {
+            line += word + ' ';
+          } else {
+            lines.push(line.trim());
+            line = word + ' ';
+          }
+        }
+        lines.push(line.trim());
+        lines.forEach((line, index) => {
+          ctx.fillText(line, node.x, node.y + 20 + index * 12);
+        });
+      });
+    }
+
+    const scenarios = [
+      {
+        id: 1,
+        title: "Case of the Vanishing Code",
+        description: "An alert pings your terminal: a Linux system’s CPU is screaming. You spot a cron job pulling a script from a shady URL, but it vanishes before you can blink. The server’s silent now, but the shadows whisper of a breach. What do you chase?",
+        choices: [
+          {
+            id: "1a",
+            text: "Check the user's command history",
+            outcome: "You dig into ~/.bash_history and find 'curl' commands pulling a ghost script. The trail’s fresh.",
+            successCriteria: "Telemetry Successful",
+            next: [
+              {
+                id: "1a1",
+                text: "Preserve history and analyze script commands",
+                outcome: "You lock down the history file and trace a malicious script fetching payloads. The system’s clean—for now.",
+                successCriteria: "Correlation Successful",
+                next: null
+              },
+              {
+                id: "1a2",
+                text: "Search for modified files",
+                outcome: "A hidden binary lurks in /tmp, pulsing with intent. You erase it, but the city’s still watching.",
+                successCriteria: "Analyze Successful",
+                next: null
+              }
+            ]
+          },
+          {
+            id: "1b",
+            text: "Inspect /var/log/syslog or /var/log/cron",
+            outcome: "The logs scream: the cron job ran, pulling scripts like a thief in the night.",
+            successCriteria: "Telemetry Successful",
+            next: [
+              {
+                id: "1b1",
+                text: "Correlate timestamps with network logs",
+                outcome: "Timestamps align with data leaking to an IP. You slam the firewall shut.",
+                successCriteria: "Correlation Successful",
+                next: null
+              },
+              {
+                id: "1b2",
+                text: "Check for log tampering",
+                outcome: "Logs are sliced—someone’s covering tracks. You pull backups to see the truth.",
+                successCriteria: "Analyze Successful",
+                next: null
+              }
+            ]
+          },
+          {
+            id: "1c",
+            text: "Analyze network connections with netstat or ss",
+            outcome: "An outbound connection hums to an unknown IP, quiet but deadly.",
+            successCriteria: "Telemetry Successful",
+            next: [
+              {
+                id: "1c1",
+                text: "Trace the IP address",
+                outcome: "The IP ties to a C2 server. You cut the system off, leaving the shadows empty.",
+                successCriteria: "Correlation Successful",
+                next: null
+              },
+              {
+                id: "1c2",
+                text: "Monitor ongoing traffic",
+                outcome: "You snag malicious packets, crafting a signature to hunt the next threat.",
+                successCriteria: "Analyze Successful",
+                next: null
+              }
+            ]
+          }
+        ]
+      },
+      {
+        id: 2,
+        title: "The Ghost Account",
+        description: "A 3-year-old account, 'testuser,' haunts your Windows domain. No one claims it, but it’s been whispering in the network’s veins. Is it a ghost or a snake? What do you hunt?",
+        choices: [
+          {
+            id: "2a",
+            text: "Review Security Event Logs for logon events",
+            outcome: "Event ID 4624 blinks: 'testuser' logged in remotely last week. Someone’s playing games.",
+            successCriteria: "Telemetry Successful",
+            next: [
+              {
+                id: "2a1",
+                text: "Trace the source IP",
+                outcome: "The IP’s from outside the city, a clear breach. You kill the account’s access.",
+                successCriteria: "Correlation Successful",
+                next: null
+              },
+              {
+                id: "2a2",
+                text: "Check logon times",
+                outcome: "Logons at 3 AM—ghosts don’t sleep. You flag it for incident response.",
+                successCriteria: "Analyze Successful",
+                next: null
+              }
+            ]
+          },
+          {
+            id: "2b",
+            text: "Check group memberships in Active Directory",
+            outcome: "Testuser’s in Domain Admins, a crown it shouldn’t wear.",
+            successCriteria: "Telemetry Successful",
+            next: [
+              {
+                id: "2b1",
+                text: "Remove from privileged groups",
+                outcome: "You strip its admin rights, locking the vault. The account’s just a shell now.",
+                successCriteria: "Analyze Successful",
+                next: null
+              },
+              {
+                id: "2b2",
+                text: "Audit other group changes",
+                outcome: "Unauthorized group shifts pop up—a wider breach. You sound the alarm.",
+                successCriteria: "Correlation Successful",
+                next: null
+              }
+            ]
+          },
+          {
+            id: "2c",
+            text: "Examine file access with audit policies",
+            outcome: "Audit logs show 'testuser' rifling through HR files, quiet as a thief.",
+            successCriteria: "Telemetry Successful",
+            next: [
+              {
+                id: "2c1",
+                text: "Lock down affected files",
+                outcome: "You seal the HR files, stopping the bleed. Case closed, but the city hums.",
+                successCriteria: "Analyze Successful",
+                next: null
+              },
+              {
+                id: "2c2",
+                text: "Check for additional unauthorized access",
+                outcome: "More files touched—a pattern emerges. You call for a full audit.",
+                successCriteria: "Correlation Successful",
+                next: null
+              }
+            ]
+          }
+        ]
+      },
+      {
+        id: 3,
+        title: "The Forgotten Server",
+        description: "A web server running WordPress, untouched for 3 years, hums in your network’s shadows. Its code’s ancient, a beacon for trouble. Has it been cracked? What do you trace?",
+        choices: [
+          {
+            id: "3a",
+            text: "Check wp-content for suspicious files",
+            outcome: "A rogue PHP script squats in wp-content/uploads, pulsing with malice.",
+            successCriteria: "Coding Successful",
+            next: [
+              {
+                id: "3a1",
+                text: "Quarantine the script",
+                outcome: "You purge the script and sweep for others. The server’s clean, but the neon burns.",
+                successCriteria: "Analyze Successful",
+                next: null
+              },
+              {
+                id: "3a2",
+                text: "Check file timestamps",
+                outcome: "Fresh timestamps scream intrusion. You patch WordPress, sealing the gate.",
+                successCriteria: "Analyze Successful",
+                next: null
+              }
+            ]
+          },
+          {
+            id: "3b",
+            text: "Review HTTP access logs",
+            outcome: "Logs show POST requests hammering a weak plugin, relentless as rain.",
+            successCriteria: "Telemetry Successful",
+            next: [
+              {
+                id: "3b1",
+                text: "Disable the plugin",
+                outcome: "You kill the plugin, shutting the door. The exploit’s dead, for now.",
+                successCriteria: "Coding Successful",
+                next: null
+              },
+              {
+                id: "3b2",
+                text: "Analyze request payloads",
+                outcome: "SQL injection attempts glare back. You harden the database, eyes open.",
+                successCriteria: "Analyze Successful",
+                next: null
+              }
+            ]
+          },
+          {
+            id: "3c",
+            text: "Monitor network traffic from the server",
+            outcome: "The server’s beaconing to a C2 server, a digital heartbeat of betrayal.",
+            successCriteria: "Telemetry Successful",
+            next: [
+              {
+                id: "3c1",
+                text: "Isolate the server",
+                outcome: "You cut the server off, silencing the C2. The compromise is caged.",
+                successCriteria: "Analyze Successful",
+                next: null
+              },
+              {
+                id: "3c2",
+                text: "Capture traffic for analysis",
+                outcome: "You grab the traffic, mapping the attacker’s tools. IDS rules tighten.",
+                successCriteria: "Correlation Successful",
+                next: null
+              }
+            ]
+          }
+        ]
+      }
+    ];
+
+    let gameState = {
+      points: 0,
+      failures: 0,
+      currentScenario: null,
+      successfulChoices: [],
+      completedScenarios: [],
+      currentChoiceId: null,
+      selectedTrait: null,
+      focusNodeId: null,
+      isRolling: false,
+      socDice: {
+        1: "Failed",
+        2: "Failed",
+        3: "Telemetry Successful",
+        4: "Telemetry Successful",
+        5: "Correlation Successful",
+        6: "Correlation Successful"
+      },
+      supportDice: null,
+      rollAttempts: 2,
+      successfulDice: [],
+      pendingTrait: null,
+      pendingChoice: null,
+      pendingScenario: null,
+      isReroll: false
+    };
+
+    const pointsDisplay = document.getElementById('points');
+    const failuresDisplay = document.getElementById('failures');
+    const rollAttemptsDisplay = document.getElementById('roll-attempts');
+
+    function rollDice() {
+      return Math.floor(Math.random() * 6) + 1;
+    }
+
+    function getDiceOutcome(dice, roll) {
+      return dice[roll];
+    }
+
+    function getRandomScenario() {
+      const availableScenarios = scenarios.filter(
+        scenario => !gameState.completedScenarios.includes(scenario.id)
+      );
+      if (availableScenarios.length === 0) {
+        gameContainer.querySelector('#game-content').innerHTML = `
+          <h2 class="text-2xl font-semibold mb-4 text-blue-400">All Cases Solved!</h2>
+          <p class="mb-6">You’ve cracked every case in this neon jungle. Start a new game to face the shadows again.</p>
+          <button id="restart" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded">Start New Game</button>
+        `;
+        document.getElementById('restart').addEventListener('click', resetGame);
+        drawPath(null, [], null, null);
+        notesContent.innerHTML = "All cases solved. Start a new game to continue taking notes.";
+        return null;
+      }
+      return availableScenarios[Math.floor(Math.random() * availableScenarios.length)];
+    }
+
+    function updateStatusBar() {
+      pointsDisplay.textContent = gameState.points;
+      failuresDisplay.textContent = gameState.failures;
+      rollAttemptsDisplay.textContent = gameState.rollAttempts;
+    }
+
+    function updateDetectiveSpecialty() {
+      detectiveSpecialty.textContent = gameState.selectedTrait ? `Specialty: ${gameState.selectedTrait}` : '';
+    }
+
+    function checkGameOver() {
+      if (gameState.failures >= 3) {
+        gameContainer.querySelector('#game-content').innerHTML = `
+          <img src="boss-pixel-art.png" alt="16-bit pixel art of the boss character" class="game-over-img">
+          <h2 class="text-2xl font-semibold mb-4 text-blue-400">You're Fired!</h2>
+          <p class="mb-6">Too many missteps in the neon dark. The city’s chewed you up. Try again?</p>
+          <button id="restart" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded">Try Again</button>
+        `;
+        detectiveImg.src = 'shocked-pixel-art.png';
+        detectiveImg.alt = '16-bit pixel art of the detective with a shocked expression';
+        gameState.focusNodeId = null;
+        document.getElementById('restart').addEventListener('click', resetGame);
+        drawPath(null, [], null, null);
+        notesContent.innerHTML = "Game over. Start a new game to continue taking notes.";
+        return true;
+      }
+      return false;
+    }
+
+    function resetGame() {
+      gameState = {
+        points: 0,
+        failures: 0,
+        currentScenario: null,
+        successfulChoices: [],
+        completedScenarios: [],
+        currentChoiceId: null,
+        selectedTrait: null,
+        focusNodeId: null,
+        isRolling: false,
+        socDice: {
+          1: "Failed",
+          2: "Failed",
+          3: "Telemetry Successful",
+          4: "Telemetry Successful",
+          5: "Correlation Successful",
+          6: "Correlation Successful"
+        },
+        supportDice: null,
+        rollAttempts: 2,
+        successfulDice: [],
+        pendingTrait: null,
+        pendingChoice: null,
+        pendingScenario: null,
+        isReroll: false
+      };
+      updateStatusBar();
+      gameContainer.querySelector('#game-content').innerHTML = `
+        <p class="mb-4">In a city where neon burns brighter than truth, you're a detective unraveling digital mysteries. Choose your technical specialty to begin your investigation.</p>
+        <div id="trait-choices" class="space-y-2">
+          <button id="network-trait" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded">Network Specialty</button>
+          <button id="identity-trait" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded">Identity Specialty</button>
+          <button id="coding-trait" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded">Coding Specialty</button>
+        </div>
+        <div id="confirm-trait" class="mt-4 hidden">
+          <button id="confirm-button" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded">Confirm</button>
+        </div>
+      `;
+      detectiveImg.src = 'detective-pixel-art.png';
+      detectiveImg.alt = '16-bit pixel art of the detective protagonist';
+      updateDetectiveSpecialty();
+      setupTraitListeners();
+      applyNeonFlicker(gameContainer);
+      applyNeonFlicker(detectiveWindow);
+      applyNeonFlicker(gridWindow);
+      applyNeonFlicker(notesWindow);
+      applyNeonFlicker(musicFrame);
+      drawPath(null, [], null, null);
+      notesContent.innerHTML = "Choose a specialty to start taking notes.";
+      clearDiceCanvas();
+    }
+
+    function setupTraitListeners() {
+      const confirmTraitDiv = document.getElementById('confirm-trait');
+      const confirmButton = document.getElementById('confirm-button');
+      const traitButtons = {
+        'network-trait': 'Network Specialty',
+        'identity-trait': 'Identity Specialty',
+        'coding-trait': 'Coding Specialty'
+      };
+
+      Object.keys(traitButtons).forEach(traitId => {
+        const button = document.getElementById(traitId);
+        button.addEventListener('click', () => {
+          gameState.pendingTrait = traitButtons[traitId];
+          updateNotes(gameState.pendingTrait);
+          confirmTraitDiv.classList.remove('hidden');
+          Object.values(traitButtons).forEach(trait => {
+            document.getElementById(`${trait.toLowerCase().replace(' ', '-')}-trait`).disabled = true;
+          });
+          confirmButton.onclick = () => {
+            selectTrait(gameState.pendingTrait);
+            confirmTraitDiv.classList.add('hidden');
+            Object.values(traitButtons).forEach(trait => {
+              document.getElementById(`${trait.toLowerCase().replace(' ', '-')}-trait`).disabled = false;
+            });
+          };
+        });
+      });
+    }
+
+    function selectTrait(trait) {
+      gameState.selectedTrait = trait;
+      if (trait === 'Network Specialty') {
+        gameState.supportDice = {
+          1: "Failed",
+          2: "Failed",
+          3: "Failed",
+          4: "Analyze Successful",
+          5: "Analyze Successful",
+          6: "Telemetry Successful"
+        };
+      } else if (trait === 'Identity Specialty') {
+        gameState.supportDice = {
+          1: "Failed",
+          2: "Failed",
+          3: "Failed",
+          4: "Analyze Successful",
+          5: "Analyze Successful",
+          6: "Telemetry Successful"
+        };
+      } else if (trait === 'Coding Specialty') {
+        gameState.supportDice = {
+          1: "Failed",
+          2: "Failed",
+          3: "Coding Successful",
+          4: "Coding Successful",
+          5: "Coding Successful",
+          6: "Coding Successful"
+        };
+      }
+      updateDetectiveSpecialty();
+      startGame();
+    }
+
+    function startGame() {
+      const scenario = getRandomScenario();
+      if (!scenario) return;
+      gameState.currentScenario = scenario;
+      gameState.successfulChoices = [];
+      gameState.currentChoiceId = null;
+      gameState.focusNodeId = null;
+      gameState.isRolling = false;
+      gameState.rollAttempts = 2;
+      gameState.successfulDice = [];
+      detectiveImg.src = 'detective-pixel-art.png';
+      detectiveImg.alt = '16-bit pixel art of the detective protagonist';
+      displayScenario(scenario);
+      drawPath(scenario, gameState.successfulChoices, gameState.currentChoiceId, gameState.focusNodeId);
+      notesContent.innerHTML = "Select an action to view notes.";
+      clearDiceCanvas();
+    }
+
+    function displayScenario(scenario) {
+      gameContainer.querySelector('#game-content').innerHTML = `
+        <h2 class="text-2xl font-semibold mb-4 text-blue-400">${scenario.title}</h2>
+        <p class="mb-6">${scenario.description}</p>
+        <h3 class="text-xl font-medium mb-2 text-blue-300">What do you do?</h3>
+        <div id="choices" class="space-y-2"></div>
+        <div id="confirm-action" class="mt-4 hidden">
+          <button id="confirm-button" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded">Confirm</button>
+        </div>
+      `;
+      const choicesDiv = document.getElementById('choices');
+      const confirmActionDiv = document.getElementById('confirm-action');
+      const confirmButton = document.getElementById('confirm-button');
+      scenario.choices.forEach(choice => {
+        const button = document.createElement('button');
+        button.className = 'w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded choice-button';
+        button.textContent = choice.text;
+        button.addEventListener('click', () => {
+          gameState.pendingChoice = choice;
+          gameState.pendingScenario = scenario;
+          gameState.isReroll = false;
+          updateNotes(choice, scenario);
+          confirmActionDiv.classList.remove('hidden');
+          document.querySelectorAll('.choice-button').forEach(btn => btn.disabled = true);
+          confirmButton.onclick = () => {
+            handleChoice(gameState.pendingChoice, gameState.pendingScenario, gameState.isReroll);
+            confirmActionDiv.classList.add('hidden');
+            document.querySelectorAll('.choice-button').forEach(btn => btn.disabled = false);
+          };
+        });
+        choicesDiv.appendChild(button);
+      });
+      drawPath(scenario, gameState.successfulChoices, gameState.currentChoiceId, gameState.focusNodeId);
+      updateStatusBar();
+      clearDiceCanvas();
+    }
+
+    function handleChoice(choice, scenario, isReroll = false) {
+      if (gameState.isRolling) return;
+      gameState.isRolling = true;
+      gameState.currentChoiceId = choice.id;
+
+      const buttons = document.querySelectorAll('.choice-button');
+      buttons.forEach(button => button.disabled = true);
+
+      updateNotes(choice, scenario);
+
+      try {
+        if (gameState.successfulChoices.includes(choice.id)) {
+          if (choice.next) {
+            gameContainer.querySelector('#game-content').innerHTML = `
+              <h2 class="text-2xl font-semibold mb-4 text-blue-400">${scenario.title}</h2>
+              <p class="mb-4"><strong>Action:</strong> ${choice.text}</p>
+              <p class="mb-4"><strong>Status:</strong> Previously Successful</p>
+              <p class="mb-6"><strong>Outcome:</strong> ${choice.outcome}</p>
+              <h3 class="text-xl font-medium mb-2 text-blue-300">Next Step:</h3>
+              <div id="choices" class="space-y-2"></div>
+              <div id="confirm-action" class="mt-4 hidden">
+                <button id="confirm-button" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded">Confirm</button>
+              </div>
+            `;
+            updateNotes(choice, scenario, true);
+            detectiveImg.src = 'detective-smile-art.png';
+            detectiveImg.alt = '16-bit pixel art of the detective smiling';
+            const choicesDiv = document.getElementById('choices');
+            const confirmActionDiv = document.getElementById('confirm-action');
+            const confirmButton = document.getElementById('confirm-button');
+            choice.next.forEach(nextChoice => {
+              const button = document.createElement('button');
+              button.className = 'w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded choice-button';
+              button.textContent = nextChoice.text;
+              button.addEventListener('click', () => {
+                gameState.pendingChoice = nextChoice;
+                gameState.pendingScenario = scenario;
+                gameState.isReroll = false;
+                updateNotes(nextChoice, scenario);
+                confirmActionDiv.classList.remove('hidden');
+                document.querySelectorAll('.choice-button').forEach(btn => btn.disabled = true);
+                confirmButton.onclick = () => {
+                  handleChoice(gameState.pendingChoice, gameState.pendingScenario, gameState.isReroll);
+                  confirmActionDiv.classList.add('hidden');
+                  document.querySelectorAll('.choice-button').forEach(btn => btn.disabled = false);
+                };
+              });
+              choicesDiv.appendChild(button);
+            });
+            drawPath(scenario, gameState.successfulChoices, gameState.currentChoiceId, gameState.focusNodeId || choice.id);
+            gameState.isRolling = false;
+            buttons.forEach(button => button.disabled = false);
+            clearDiceCanvas();
+          } else {
+            gameContainer.querySelector('#game-content').innerHTML = `
+              <h2 class="text-2xl font-semibold mb-4 text-blue-400">${scenario.title}</h2>
+              <p class="mb-4"><strong>Action:</strong> ${choice.text}</p>
+              <p class="mb-4"><strong>Status:</strong> Previously Successful</p>
+              <p class="mb-6"><strong>Outcome:</strong> ${choice.outcome}</p>
+              <button id="new-case" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded">Take on a New Case</button>
+            `;
+            updateNotes(choice, scenario, true);
+            detectiveImg.src = 'detective-smile-art.png';
+            detectiveImg.alt = '16-bit pixel art of the detective smiling';
+            gameState.completedScenarios.push(scenario.id);
+            gameState.focusNodeId = null;
+            document.getElementById('new-case').addEventListener('click', startGame);
+            drawPath(null, [], null, null);
+            gameState.isRolling = false;
+            clearDiceCanvas();
+          }
+        } else {
+          const socRoll = rollDice();
+          const supportRoll = rollDice();
+          const socOutcome = getDiceOutcome(gameState.socDice, socRoll);
+          const supportOutcome = getDiceOutcome(gameState.supportDice, supportRoll);
+
+          if (socOutcome === choice.successCriteria && !gameState.successfulDice.includes(socOutcome)) {
+            gameState.successfulDice.push(socOutcome);
+          }
+          if (supportOutcome === choice.successCriteria && !gameState.successfulDice.includes(supportOutcome)) {
+            gameState.successfulDice.push(supportOutcome);
+          }
+
+          gameState.rollAttempts -= 1;
+          updateStatusBar();
+
+          showDiceAnimation(socRoll, supportRoll, choice, scenario, () => {
+            try {
+              const isSuccess = gameState.successfulDice.includes(choice.successCriteria);
+
+              if (isSuccess) {
+                gameState.points += 10;
+                gameState.successfulChoices.push(choice.id);
+                gameState.rollAttempts = 2;
+                gameState.successfulDice = [];
+                detectiveImg.src = 'detective-smile-art.png';
+                detectiveImg.alt = '16-bit pixel art of the detective smiling';
+                if (scenario.choices.some(c => c.id === choice.id)) {
+                  gameState.focusNodeId = choice.id;
+                }
+                if (choice.next) {
+                  gameContainer.querySelector('#game-content').innerHTML = `
+                    <h2 class="text-2xl font-semibold mb-4 text-blue-400">${scenario.title}</h2>
+                    <p class="mb-4"><strong>Action:</strong> ${choice.text}</p>
+                    <p class="mb-4"><strong>Roll:</strong> SOC: ${socOutcome}, Support: ${supportOutcome} (Success!)</p>
+                    <p class="mb-6"><strong>Outcome:</strong> ${choice.outcome}</p>
+                    <h3 class="text-xl font-medium mb-2 text-blue-300">Next Step:</h3>
+                    <div id="choices" class="space-y-2"></div>
+                    <div id="confirm-action" class="mt-4 hidden">
+                      <button id="confirm-button" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded">Confirm</button>
+                    </div>
+                  `;
+                  const choicesDiv = document.getElementById('choices');
+                  const confirmActionDiv = document.getElementById('confirm-action');
+                  const confirmButton = document.getElementById('confirm-button');
+                  choice.next.forEach(nextChoice => {
+                    const button = document.createElement('button');
+                    button.className = 'w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded choice-button';
+                    button.textContent = nextChoice.text;
+                    button.addEventListener('click', () => {
+                      gameState.pendingChoice = nextChoice;
+                      gameState.pendingScenario = scenario;
+                      gameState.isReroll = false;
+                      updateNotes(nextChoice, scenario);
+                      confirmActionDiv.classList.remove('hidden');
+                      document.querySelectorAll('.choice-button').forEach(btn => btn.disabled = true);
+                      confirmButton.onclick = () => {
+                        handleChoice(gameState.pendingChoice, gameState.pendingScenario, gameState.isReroll);
+                        confirmActionDiv.classList.add('hidden');
+                        document.querySelectorAll('.choice-button').forEach(btn => btn.disabled = false);
+                      };
+                    });
+                    choicesDiv.appendChild(button);
+                  });
+                  drawPath(scenario, gameState.successfulChoices, gameState.currentChoiceId, gameState.focusNodeId);
+                } else {
+                  gameContainer.querySelector('#game-content').innerHTML = `
+                    <h2 class="text-2xl font-semibold mb-4 text-blue-400">${scenario.title}</h2>
+                    <p class="mb-4"><strong>Action:</strong> ${choice.text}</p>
+                    <p class="mb-4"><strong>Roll:</strong> SOC: ${socOutcome}, Support: ${supportOutcome} (Success!)</p>
+                    <p class="mb-6"><strong>Outcome:</strong> ${choice.outcome}</p>
+                    <button id="new-case" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2
