@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Tron Grid with Cityscape</title>
+    <style>
+        canvas { background: black; }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const scale = canvas.height / 2;
+        const nearZ = 0.1;
+        const farZ = 100;
+        const speed = 0.05;
+        const numLines = 100;
+        const numCityObjects = 20;
+
+        let lineZs = Array.from({ length: numLines }, (_, i) => nearZ + (i * (farZ - nearZ) / (numLines - 1)));
+
+        // Updated projection function
+        function project(x, y, z) {
+            const screenX = centerX + (x / z) * scale;
+            const screenY = centerY + (( -y + 1 ) / z) * scale;
+            return { screenX, screenY };
+        }
+
+        function randomize(obj) {
+            if (Math.random() < 0.7) {
+                obj.type = 'building';
+                obj.width = 5 + Math.random() * 10;
+                obj.depth = 5 + Math.random() * 10;
+                obj.height = 10 + Math.random() * 20;
+            } else {
+                obj.type = 'tree';
+                obj.height = 5 + Math.random() * 5;
+                obj.frondLength = 2 + Math.random() * 3;
+            }
+            obj.x = (Math.random() < 0.5 ? -1 : 1) * (50 + Math.random() * 20);
+        }
+
+        const cityObjects = [];
+        for (let i = 0; i < numCityObjects; i++) {
+            const obj = { z: nearZ + i * (farZ - nearZ) / numCityObjects };
+            randomize(obj);
+            cityObjects.push(obj);
+        }
+
+        function drawBuilding(obj) {
+            const { x, z, width, depth, height } = obj;
+            const corners = [
+                { x, y: 0, z },
+                { x: x + width, y: 0, z },
+                { x, y: 0, z: z + depth },
+                { x: x + width, y: 0, z: z + depth },
+                { x, y: height, z },
+                { x: x + width, y: height, z },
+                { x, y: height, z: z + depth },
+                { x: x + width, y: height, z: z + depth }
+            ];
+            const projected = corners.map(p => project(p.x, p.y, p.z));
+
+            ctx.beginPath();
+            ctx.strokeStyle = '#00FFFF';
+            ctx.moveTo(projected[0].screenX, projected[0].screenY);
+            ctx.lineTo(projected[1].screenX, projected[1].screenY);
+            ctx.lineTo(projected[3].screenX, projected[3].screenY);
+            ctx.lineTo(projected[2].screenX, projected[2].screenY);
+            ctx.lineTo(projected[0].screenX, projected[0].screenY);
+            ctx.moveTo(projected[4].screenX, projected[4].screenY);
+            ctx.lineTo(projected[5].screenX, projected[5].screenY);
+            ctx.lineTo(projected[7].screenX, projected[7].screenY);
+            ctx.lineTo(projected[6].screenX, projected[6].screenY);
+            ctx.lineTo(projected[4].screenX, projected[4].screenY);
+            for (let i = 0; i < 4; i++) {
+                ctx.moveTo(projected[i].screenX, projected[i].screenY);
+                ctx.lineTo(projected[i + 4].screenX, projected[i + 4].screenY);
+            }
+            ctx.stroke();
+        }
+
+        function drawTree(obj) {
+            const { x, z, height, frondLength } = obj;
+            const bottom = project(x, 0, z);
+            const top = project(x, height, z);
+            const left = project(x - frondLength, height, z);
+            const right = project(x + frondLength, height, z);
+            const topLeft = project(x - frondLength / 2, height + frondLength / 2, z);
+            const topRight = project(x + frondLength / 2, height + frondLength / 2, z);
+
+            ctx.beginPath();
+            ctx.strokeStyle = '#00FFFF';
+            ctx.moveTo(bottom.screenX, bottom.screenY);
+            ctx.lineTo(top.screenX, top.screenY);
+            ctx.moveTo(left.screenX, left.screenY);
+            ctx.lineTo(right.screenX, right.screenY);
+            ctx.moveTo(top.screenX, top.screenY);
+            ctx.lineTo(topLeft.screenX, topLeft.screenY);
+            ctx.moveTo(top.screenX, top.screenY);
+            ctx.lineTo(topRight.screenX, topRight.screenY);
+            ctx.stroke();
+        }
+
+        const startTime = performance.now();
+
+        function draw() {
+            ctx.fillStyle = 'black';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const currentTime = performance.now();
+            const elapsed = (currentTime - startTime) / 1000;
+            const t = elapsed % 255;
+            const isCityPhase = t < 45;
+
+            cityObjects.forEach(obj => {
+                obj.z -= speed;
+                if (obj.z < nearZ) {
+                    obj.z += (farZ - nearZ);
+                    randomize(obj);
+                }
+            });
+
+            ctx.strokeStyle = '#00FFFF';
+            ctx.lineWidth = 2;
+
+            const numVertical = 20;
+            for (let i = 0; i < numVertical; i++) {
+                const x = (i / (numVertical - 1)) * canvas.width;
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+
+            lineZs = lineZs.map(z => z - speed);
+            lineZs = lineZs.map(z => z < nearZ ? farZ : z);
+            lineZs.sort((a, b) => a - b);
+            for (const z of lineZs) {
+                const screenY = centerY + (1 / z) * scale;
+                if (screenY > centerY && screenY < canvas.height) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, screenY);
+                    ctx.lineTo(canvas.width, screenY);
+                    ctx.stroke();
+                }
+            }
+
+            if (isCityPhase) {
+                cityObjects.forEach(obj => {
+                    if (obj.type === 'building') {
+                        drawBuilding(obj);
+                    } else if (obj.type === 'tree') {
+                        drawTree(obj);
+                    }
+                });
+            }
+
+            requestAnimationFrame(draw);
+        }
+
+        draw();
+    </script>
+</body>
+</html>

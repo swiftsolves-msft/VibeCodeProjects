@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matrix Digital Rain</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: black;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="matrix"></canvas>
+    <script>
+        const canvas = document.getElementById('matrix');
+        const ctx = canvas.getContext('2d');
+
+        // Set canvas size to window size
+        canvas.height = window.innerHeight;
+        canvas.width = window.innerWidth;
+
+        // Characters to use (includes katakana and latin characters)
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン';
+        const fontSize = 14;
+        const columns = Math.floor(canvas.width / fontSize);
+        
+        // Array to store current Y position of each column
+        const drops = Array(columns).fill(1);
+
+        // Colors
+        const green = 'rgb(0, 255, 70)';
+        const fadeGreen = 'rgba(0, 255, 70, 0.1)';
+
+        function draw() {
+            // Add semi-transparent black to create fading effect
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = green;
+            ctx.font = `${fontSize}px monospace`;
+
+            // Loop through drops
+            for (let i = 0; i < drops.length; i++) {
+                // Random character
+                const text = chars.charAt(Math.floor(Math.random() * chars.length));
+
+                // Draw character
+                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+                // Reset drop to top when it reaches bottom
+                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+
+                drops[i]++;
+            }
+        }
+
+        // Run animation
+        setInterval(draw, 33);
+
+        // Resize canvas when window is resized
+        window.addEventListener('resize', () => {
+            canvas.height = window.innerHeight;
+            canvas.width = window.innerWidth;
+            drops.length = Math.floor(canvas.width / fontSize);
+            drops.fill(1);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Warp Speed Stars</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: black;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="warp"></canvas>
+    <script>
+        const canvas = document.getElementById('warp');
+        const ctx = canvas.getContext('2d');
+
+        // Set canvas size to window size
+        canvas.height = window.innerHeight;
+        canvas.width = window.innerWidth;
+
+        // Star properties
+        const stars = [];
+        const numStars = 200;
+        const maxSpeed = 30;
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+
+        // Star class
+        class Star {
+            constructor() {
+                this.reset();
+            }
+
+            reset() {
+                this.x = centerX;
+                this.y = centerY;
+                // Random direction (angle in radians)
+                this.angle = Math.random() * Math.PI * 2;
+                // Random speed
+                this.speed = Math.random() * maxSpeed + 5;
+                // Random length for streak
+                this.length = Math.random() * 10 + 5;
+                // Random brightness
+                this.brightness = Math.random() * 0.5 + 0.5;
+            }
+
+            update() {
+                // Move star in its direction
+                this.x += Math.cos(this.angle) * this.speed;
+                this.y += Math.sin(this.angle) * this.speed;
+
+                // Reset star if it goes off screen
+                if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) {
+                    this.reset();
+                }
+            }
+
+            draw() {
+                ctx.beginPath();
+                // Start point of streak
+                ctx.moveTo(this.x, this.y);
+                // End point of streak (opposite direction of movement)
+                ctx.lineTo(
+                    this.x - Math.cos(this.angle) * this.length,
+                    this.y - Math.sin(this.angle) * this.length
+                );
+                ctx.strokeStyle = `rgba(255, 255, 255, ${this.brightness})`;
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+        }
+
+        // Initialize stars
+        for (let i = 0; i < numStars; i++) {
+            stars.push(new Star());
+        }
+
+        function animate() {
+            // Clear canvas
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Update and draw each star
+            stars.forEach(star => {
+                star.update();
+                star.draw();
+            });
+
+            requestAnimationFrame(animate);
+        }
+
+        // Start animation
+        animate();
+
+        // Resize canvas when window is resized
+        window.addEventListener('resize', () => {
+            canvas.height = window.innerHeight;
+            canvas.width = window.innerWidth;
+            // Update center
+            centerX = canvas.width / 2;
+            centerY = canvas.height / 2;
+            // Reset stars to new center
+            stars.forEach(star => star.reset());
+        });
+    </script>
+</body>
+</html>

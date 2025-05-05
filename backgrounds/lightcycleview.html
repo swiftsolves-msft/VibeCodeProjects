@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tron Grid Background</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: black;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="tronGrid"></canvas>
+    <script>
+        // Get canvas and context
+        const canvas = document.getElementById('tronGrid');
+        const ctx = canvas.getContext('2d');
+
+        // Resize canvas to fit window
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // Grid parameters
+        const dz = 1;               // Spacing between horizontal lines in world space
+        const speed = 0.05;         // Speed of line movement per frame
+        const nearZ = 0.1;          // Closest z-distance before resetting
+        const farZ = 100;           // Farthest z-distance for lines
+        const numLines = 100;       // Number of horizontal lines
+        const numVerticalLines = 20;// Number of vertical lines
+
+        // Initialize z-positions for horizontal lines
+        let lineZs = [];
+        for (let i = 0; i < numLines; i++) {
+            lineZs.push(nearZ + i * (farZ - nearZ) / numLines);
+        }
+
+        // Animation loop
+        function draw() {
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const scale = canvas.height / 2; // Perspective scaling factor
+
+            // Clear canvas with black background
+            ctx.fillStyle = 'black';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Set line style to Tron-like glowing blue
+            ctx.strokeStyle = '#00BFFF';
+            ctx.lineWidth = 2;
+
+            // Draw static vertical lines (converging to vanishing point)
+            ctx.beginPath();
+            for (let i = 0; i <= numVerticalLines; i++) {
+                const x = (i / numVerticalLines) * canvas.width;
+                ctx.moveTo(centerX, centerY);
+                ctx.lineTo(x, canvas.height);
+            }
+            ctx.stroke();
+
+            // Draw animated horizontal lines
+            ctx.beginPath();
+            lineZs.forEach(z => {
+                if (z > 0) {
+                    const screenY = centerY + (1 / z) * scale;
+                    if (screenY < canvas.height) {
+                        ctx.moveTo(0, screenY);
+                        ctx.lineTo(canvas.width, screenY);
+                    }
+                }
+            });
+            ctx.stroke();
+
+            // Update z-positions for animation
+            lineZs = lineZs.map(z => z - speed);
+            // Reset lines that pass the near point
+            lineZs = lineZs.map(z => z < nearZ ? farZ : z);
+
+            // Request next frame
+            requestAnimationFrame(draw);
+        }
+
+        // Start animation
+        draw();
+    </script>
+</body>
+</html>
