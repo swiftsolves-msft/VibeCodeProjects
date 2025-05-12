@@ -13,3 +13,5 @@ Backgrounds vibe coded in Grok using javascript. These backgrounds can be used i
 [WarpSpeed](https://backstor.z20.web.core.windows.net/warp.html)
 
 [Lightcycle 1st Person View](https://backstor.z20.web.core.windows.net/lightcycleview.html)
+
+[Fireworks](https://backstor.z20.web.core.windows.net/fireworks.html)
