@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Living Rorschach Inkblot Background with Eye-Like Inkblots and Grey Gap</title>
+    <style>
+        body { margin: 0; }
+        canvas { display: block; background: #D3D3D3; } /* Light grey background */
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        // Resize canvas to fit window
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // Inkblot class
+        class Inkblot {
+            constructor() {
+                this.numPoints = 26;
+                this.pointsA = this.generatePoints();
+                this.pointsB = this.generatePoints();
+                this.t = 0;
+                this.morphDuration = 5;
+            }
+
+            generatePoints() {
+                const points = [];
+                const maxRadiusX = Math.min(canvas.width, canvas.height) * 0.2;
+                const maxRadiusY = maxRadiusX * 1.5; // Vertical stretch
+                const minRadiusX = maxRadiusX * 0.6;
+                const minRadiusY = maxRadiusY * 0.6;
+                const edgeRadiusMultiplier = 1.5;
+
+                for (let i = 0; i < this.numPoints; i++) {
+                    const angle = (i / this.numPoints) * Math.PI * 2;
+                    const isEdgePoint = Math.random() < 0.4;
+
+                    // Adjust radius based on angle to create an eye-like shape
+                    let radiusX, radiusY;
+                    const angleNormalized = (angle + Math.PI / 2) % (Math.PI * 2);
+                    const isInnerSide = angleNormalized > Math.PI && angleNormalized < 2 * Math.PI;
+                    const isOuterSide = angleNormalized < Math.PI;
+
+                    if (isEdgePoint) {
+                        // Only apply edge extension to non-inner sides to avoid overlap
+                        if (isInnerSide) {
+                            radiusX = maxRadiusX;
+                            radiusY = maxRadiusY;
+                        } else {
+                            radiusX = maxRadiusX * edgeRadiusMultiplier;
+                            radiusY = maxRadiusY * edgeRadiusMultiplier;
+                        }
+                    } else {
+                        // Increase reduction on inner side to ensure no overlap
+                        const innerAdjustment = isInnerSide ? 0.3 : 1.0; // More concave on inner side
+                        const outerAdjustment = isOuterSide ? 1.2 : 1.0;
+                        radiusX = (minRadiusX + Math.random() * (maxRadiusX - minRadiusX)) * innerAdjustment * outerAdjustment;
+                        radiusY = (minRadiusY + Math.random() * (maxRadiusY - minRadiusY)) * innerAdjustment * outerAdjustment;
+                    }
+
+                    const x = Math.cos(angle) * radiusX;
+                    const y = Math.sin(angle) * radiusY;
+                    points.push({ x, y });
+                }
+                return points;
+            }
+
+            update(deltaTime) {
+                this.t += deltaTime / this.morphDuration;
+                if (this.t >= 1) {
+                    this.t = 0;
+                    this.pointsA = this.pointsB;
+                    this.pointsB = this.generatePoints();
+                }
+            }
+
+            draw(offsetX, mirror = false) {
+                const centerX = canvas.width / 2 + offsetX;
+                const centerY = canvas.height / 2;
+
+                // Interpolate between pointsA and pointsB
+                const points = this.pointsA.map((pointA, i) => {
+                    const pointB = this.pointsB[i];
+                    const x = pointA.x + (pointB.x - pointA.x) * this.t;
+                    const y = pointA.y + (pointB.y - pointA.y) * this.t;
+                    return { x, y };
+                });
+
+                // Draw left side of the inkblot
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                for (let i = 0; i < points.length; i++) {
+                    const p0 = points[i];
+                    const p1 = points[(i + 1) % points.length];
+                    const midX = (p0.x + p1.x) / 2;
+                    const midY = (p0.y + p1.y) / 2;
+
+                    ctx.quadraticCurveTo(
+                        centerX + (mirror ? -p0.x : p0.x), centerY + p0.y,
+                        centerX + (mirror ? -midX : midX), centerY + midY
+                    );
+                }
+                ctx.closePath();
+                ctx.fillStyle = 'black';
+                ctx.fill();
+
+                // Draw right side of the inkblot as a separate path
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                for (let i = 0; i < points.length; i++) {
+                    const p0 = points[i];
+                    const p1 = points[(i + 1) % points.length];
+                    const midX = (p0.x + p1.x) / 2;
+                    const midY = (p0.y + p1.y) / 2;
+
+                    ctx.quadraticCurveTo(
+                        centerX + (mirror ? p0.x : -p0.x), centerY + p0.y,
+                        centerX + (mirror ? midX : -midX), centerY + midY
+                    );
+                }
+                ctx.closePath();
+                ctx.fillStyle = 'black';
+                ctx.fill();
+            }
+        }
+
+        // Initialize inkblot
+        const inkblot = new Inkblot();
+
+        // Animation loop
+        let lastTime = performance.now();
+        function animate() {
+            const currentTime = performance.now();
+            const deltaTime = (currentTime - lastTime) / 1000; // in seconds
+            lastTime = currentTime;
+
+            // Clear canvas
+            ctx.fillStyle = '#D3D3D3'; // Light grey background
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Update inkblot
+            inkblot.update(deltaTime);
+
+            // Draw two inkblots with increased separation to show grey in the middle
+            const offset = Math.min(canvas.width, canvas.height) * 0.45; // Increased offset for clear gap
+            inkblot.draw(-offset / 2, false); // Left inkblot
+            inkblot.draw(offset / 2, true);  // Right inkblot, mirrored
+
+            requestAnimationFrame(animate);
+        }
+
+        // Start the animation
+        animate();
+    </script>
+</body>
+</html>
