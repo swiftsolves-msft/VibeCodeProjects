@@ -17,3 +17,5 @@ Backgrounds vibe coded in Grok using javascript. These backgrounds can be used i
 [Fireworks](https://backstor.z20.web.core.windows.net/fireworks.html) or [Here](https://vibeback.z13.web.core.windows.net/fireworks.html)
 
 [Rorschach](https://backstor.z20.web.core.windows.net/rorschach.html) or [Here](https://vibeback.z13.web.core.windows.net/rorschach.html)
+
+[Happy Birthday](https://vibeback.z13.web.core.windows.net/happybday.html)
