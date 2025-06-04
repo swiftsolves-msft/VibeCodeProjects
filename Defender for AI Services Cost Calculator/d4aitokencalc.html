@@ -23,7 +23,7 @@
             max-width: 600px;
             width: 100%;
         }
-        h1 { font-size: 24px; color: #2c3e50; text-align: center; }
+        h1 { font-size: 24px; color: #2c3e50; text-align: center; margin-bottom: 20px; }
         h2 { font-size: 20px; color: #2c3e50; }
         p { font-size: 14px; color: #555; }
         textarea, input[type="number"] {
@@ -56,21 +56,25 @@
             margin-bottom: 20px;
         }
         .disclaimer { font-size: 12px; color: #888; margin-top: 10px; }
+        .disclaimer a { color: #3498db; text-decoration: none; }
+        .disclaimer a:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
     <div class="container">
+        <!-- Title -->
+        <h1>Defender for AI Services Cost Calculator</h1>
+
         <!-- Prompt Input Section -->
         <div class="prompt-section">
             <h2>Enter Your Prompt</h2>
             <p>Type or paste your application prompt below to calculate the approximate number of tokens.</p>
             <textarea id="promptInput" rows="4" placeholder="Enter your prompt here..."></textarea>
             <button onclick="calculateTokens()">Calculate Tokens</button>
-            <p class="disclaimer">Note: This is an approximation based on splitting the text by spaces. Actual token counts may vary depending on the AI model.</p>
+            <p class="disclaimer">Note: This is an approximation based on splitting the text by spaces. For accurate token counts, use <a href="https://platform.openai.com/tokenizer" target="_blank">OpenAI's Tokenizer</a>.</p>
         </div>
 
         <!-- Calculator Section -->
-        <h1>Defender for AI Services Cost Calculator</h1>
         <p>Estimate your monthly cost. Enter values below and click "Calculate".</p>
         <label>Tokens per Prompt:</label>
         <input type="number" id="tokensPerPrompt" min="0">
