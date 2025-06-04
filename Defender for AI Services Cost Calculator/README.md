@@ -1,6 +1,6 @@
 # Defender for AI Services Cost Calculator
 
-Calculator vibe coded in Grok using javascript. 
+Calculator vibe coded in Grok using javascript. [Launch Calculator Here:](https://d4calcs.z20.web.core.windows.net/)
 
 [Grok Prompt Started](https://grok.com/share/bGVnYWN5_1212a9ab-953b-4824-8049-29f6a398cea9)
 
