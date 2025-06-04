@@ -60,7 +60,7 @@
         .disclaimer a:hover { text-decoration: underline; }
     </style>
 </head>
-<body>
+<body onload="initialize()">
     <div class="container">
         <!-- Title -->
         <h1>Defender for AI Services Cost Calculator</h1>
@@ -69,7 +69,7 @@
         <div class="prompt-section">
             <h2>Enter Your Prompt</h2>
             <p>Type or paste your application prompt below to calculate the approximate number of tokens.</p>
-            <textarea id="promptInput" rows="4" placeholder="Enter your prompt here..."></textarea>
+            <textarea id="promptInput" rows="4">System Prompt ## I am a helpful triage assistant with pleasant manners looking to give helpful and accurate information to customer inquires. ### Task 1 ### Customer is asking about a recent case 33034 and wants a status update, Step 1: provide the latest updates from notes and summarize, Step 2: provide a timeline of latest 3 events</textarea>
             <button onclick="calculateTokens()">Calculate Tokens</button>
             <p class="disclaimer">Note: This is an approximation based on splitting the text by spaces. For accurate token counts, use <a href="https://platform.openai.com/tokenizer" target="_blank">OpenAI's Tokenizer</a>.</p>
         </div>
@@ -77,16 +77,21 @@
         <!-- Calculator Section -->
         <p>Estimate your monthly cost. Enter values below and click "Calculate".</p>
         <label>Tokens per Prompt:</label>
-        <input type="number" id="tokensPerPrompt" min="0">
+        <input type="number" id="tokensPerPrompt" min="0" value="49">
         <label>Prompts per Day:</label>
-        <input type="number" id="promptsPerDay" min="0">
+        <input type="number" id="promptsPerDay" min="0" value="2000">
         <button onclick="calculateCost()">Calculate</button>
         <div>
-            <p><strong>Monthly Total Cost:</strong> <span id="monthlyTotal" class="highlight">$0.00</span></p>
+            <p><strong>Monthly Total Cost:</strong> <span id="monthlyTotal" class="highlight">$5.88</span></p>
         </div>
     </div>
 
     <script>
+        function initialize() {
+            calculateTokens();
+            calculateCost();
+        }
+
         function calculateTokens() {
             const prompt = document.getElementById('promptInput').value;
             const tokenCount = prompt.trim().split(/\s+/).filter(word => word.length > 0).length;
