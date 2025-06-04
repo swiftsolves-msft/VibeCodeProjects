@@ -6,4 +6,4 @@ Calculator vibe coded in Grok using javascript.
 
 [Grok Prompt Refined](https://grok.com/share/bGVnYWN5_1d8e62ec-6fb8-4704-a40c-44115d9ed942)
 
-![enter image description here]([https://raw.githubusercontent.com/swiftsolves-msft/VibeCodeProjects/refs/heads/main/cybersleuth/images/calculator.png](https://github.com/swiftsolves-msft/VibeCodeProjects/raw/refs/heads/main/Defender%20for%20AI%20Services%20Cost%20Calculator/images/calculator.png))
+![enter image description here](https://github.com/swiftsolves-msft/VibeCodeProjects/raw/refs/heads/main/Defender%20for%20AI%20Services%20Cost%20Calculator/images/calculator.png)
