@@ -21,3 +21,5 @@ Backgrounds vibe coded in Grok using javascript. These backgrounds can be used i
 [Happy Birthday](https://vibeback.z13.web.core.windows.net/happybday.html)
 
 [NY Times Square Happy Birthday](https://backstor.z20.web.core.windows.net/nytshbday.html) or [Here](https://vibeback.z13.web.core.windows.net/nytshbday.html)
+
+[Hacker Happy Birthday](https://vibeback.z13.web.core.windows.net/gameplay.html)
