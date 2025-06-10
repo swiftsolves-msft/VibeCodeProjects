@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Green Screen Terminal Background</title>
+    <style>
+        body { margin: 0; }
+        canvas { display: block; background: #00FF00; } /* Green screen background */
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        // Resize canvas to fit window
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // Terminal settings
+        const fontSize = 20;
+        const lineHeight = fontSize * 1.2;
+        const padding = 20;
+        const cursorBlinkRate = 500; // Blink every 500ms
+        let cursorVisible = true;
+        let lastBlinkTime = 0;
+
+        // Text content and timing
+        let terminalText = '';
+        let state = 0; // 0: awaiting input, 1: typing message, 2: showing ASCII
+        let typingIndex = 0;
+        const message = 'Would you like to play a game ?';
+        const typingSpeed = 0.2; // seconds per character
+        let startTime = performance.now(); // Start time for the animation
+
+        // ASCII art for Happy Birthday
+        const asciiArt = `
+   **** HAPPY BIRTHDAY ****
+  *                      *
+ *   May all your wishes  *
+*   come true this year! *
+ *                      *
+  *                    *
+   ********************
+`.trim();
+
+        // Draw terminal content
+        function drawTerminal() {
+            ctx.fillStyle = '#00FF00'; // Green background
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = 'white';
+            ctx.font = `${fontSize}px Courier New`;
+            ctx.textBaseline = 'top';
+
+            // Draw terminal text
+            const lines = terminalText.split('\n');
+            lines.forEach((line, index) => {
+                ctx.fillText(line, padding, padding + index * lineHeight);
+            });
+
+            // Draw blinking cursor only in state 0
+            if (state === 0 && cursorVisible) {
+                const currentLine = lines.length - 1;
+                const cursorX = padding + ctx.measureText(lines[currentLine]).width;
+                const cursorY = padding + currentLine * lineHeight;
+                ctx.fillRect(cursorX, cursorY, fontSize / 4, fontSize);
+            }
+        }
+
+        // Animation loop
+        let lastTime = performance.now();
+        function animate() {
+            const currentTime = performance.now();
+            const deltaTime = (currentTime - lastTime) / 1000; // in seconds
+            lastTime = currentTime;
+
+            // Calculate total elapsed time since animation started
+            const elapsedTime = (currentTime - startTime) / 1000; // in seconds
+
+            // State transitions based on total elapsed time
+            if (state === 0 && elapsedTime > 6) {
+                state = 1;
+                terminalText = '> ';
+                typingIndex = 0;
+            } else if (state === 1 && elapsedTime > 12) {
+                state = 2;
+                terminalText += '\n\n' + asciiArt;
+            }
+
+            // Typing effect during state 1
+            if (state === 1) {
+                const timeInState = elapsedTime - 6; // Time since entering state 1
+                const charactersToType = Math.floor(timeInState / typingSpeed);
+                if (charactersToType > typingIndex && typingIndex < message.length) {
+                    terminalText += message[typingIndex];
+                    typingIndex++;
+                }
+            }
+
+            // Blink cursor every 500ms
+            if (currentTime - lastBlinkTime > cursorBlinkRate) {
+                cursorVisible = !cursorVisible;
+                lastBlinkTime = currentTime;
+            }
+
+            // Draw
+            drawTerminal();
+
+            requestAnimationFrame(animate);
+        }
+
+        // Start the animation
+        animate();
+    </script>
+</body>
+</html>
